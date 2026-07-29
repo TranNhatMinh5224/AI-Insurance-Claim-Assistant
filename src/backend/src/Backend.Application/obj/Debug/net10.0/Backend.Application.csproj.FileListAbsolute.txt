@@ -13,3 +13,4 @@ C:\Users\Minh\Desktop\My-Project\AI-Insurance-Claim-Assistant\src\backend\src\Ba
 C:\Users\Minh\Desktop\My-Project\AI-Insurance-Claim-Assistant\src\backend\src\Backend.Application\obj\Debug\net10.0\refint\Backend.Application.dll
 C:\Users\Minh\Desktop\My-Project\AI-Insurance-Claim-Assistant\src\backend\src\Backend.Application\obj\Debug\net10.0\Backend.Application.pdb
 C:\Users\Minh\Desktop\My-Project\AI-Insurance-Claim-Assistant\src\backend\src\Backend.Application\obj\Debug\net10.0\ref\Backend.Application.dll
+C:\Users\Minh\Desktop\My-Project\AI-Insurance-Claim-Assistant\src\backend\src\Backend.Application\obj\Debug\net10.0\Backend.Application.sourcelink.json

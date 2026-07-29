@@ -15,3 +15,6 @@ C:\Users\Minh\Desktop\My-Project\AI-Insurance-Claim-Assistant\src\backend\src\Ba
 C:\Users\Minh\Desktop\My-Project\AI-Insurance-Claim-Assistant\src\backend\src\Backend.Infrastructure\obj\Debug\net10.0\refint\Backend.Infrastructure.dll
 C:\Users\Minh\Desktop\My-Project\AI-Insurance-Claim-Assistant\src\backend\src\Backend.Infrastructure\obj\Debug\net10.0\Backend.Infrastructure.pdb
 C:\Users\Minh\Desktop\My-Project\AI-Insurance-Claim-Assistant\src\backend\src\Backend.Infrastructure\obj\Debug\net10.0\ref\Backend.Infrastructure.dll
+C:\Users\Minh\Desktop\My-Project\AI-Insurance-Claim-Assistant\src\backend\src\Backend.Infrastructure\obj\Debug\net10.0\Backend.Infrastructure.sourcelink.json
+C:\Users\Minh\Desktop\My-Project\AI-Insurance-Claim-Assistant\src\backend\src\Backend.Infrastructure\bin\Debug\net10.0\Backend.Infrastructure.runtimeconfig.json
+C:\Users\Minh\Desktop\My-Project\AI-Insurance-Claim-Assistant\src\backend\src\Backend.Infrastructure\obj\Debug\net10.0\Backend.Infrastructure.genruntimeconfig.cache
