@@ -1,0 +1,100 @@
+version: '3.8'
+
+services:
+  # 1. PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: ai_insurance_postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: YOUR_PASSWORD_HERE
+      POSTGRES_DB: ai_insurance_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    networks:
+      - ai_insurance_net
+
+  # 2. MinIO Object Storage (Thay thế S3 để lưu trữ file offline)
+  minio:
+    image: minio/minio:latest
+    container_name: ai_insurance_minio
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin_password
+    ports:
+      - "9000:9000" # API Port
+      - "9001:9001" # Web UI Console Port
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+    restart: unless-stopped
+    networks:
+      - ai_insurance_net
+
+  # 3. .NET WebApi Backend
+  backend:
+    build:
+      context: ./src/backend
+      dockerfile: Dockerfile
+    container_name: ai_insurance_backend
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_HTTP_PORTS=8080
+      # Đè chuỗi kết nối để trỏ tới container postgres thay vì localhost
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=ai_insurance_db;Username=postgres;Password=YOUR_PASSWORD_HERE
+      # Tương lai: Cấu hình MinIO (bạn có thể map biến môi trường vào appsettings.json)
+      - MinioSettings__Endpoint=minio:9000
+      - MinioSettings__AccessKey=minioadmin
+      - MinioSettings__SecretKey=minioadmin_password
+      # Cấu hình RabbitMQ
+      - RabbitMqSettings__HostName=rabbitmq
+      - RabbitMqSettings__UserName=rabbitmq
+      - RabbitMqSettings__Password=rabbitmq_password
+    ports:
+      - "5263:8080"
+    depends_on:
+      - postgres
+      - minio
+      - rabbitmq
+    restart: unless-stopped
+    networks:
+      - ai_insurance_net
+
+  # 4. RabbitMQ Message Broker
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: ai_insurance_rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: rabbitmq
+      RABBITMQ_DEFAULT_PASS: rabbitmq_password
+    ports:
+      - "5672:5672"   # Port giao tiếp Message
+      - "15672:15672" # Port Web UI Quản lý (Rất tiện để xem tin nhắn chạy)
+    restart: unless-stopped
+    networks:
+      - ai_insurance_net
+
+  # 5. Qdrant Vector Database (Dành cho AI RAG)
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: ai_insurance_qdrant
+    ports:
+      - "6333:6333"   # Port giao tiếp HTTP/REST
+      - "6334:6334"   # Port giao tiếp gRPC (Tốc độ cao)
+    volumes:
+      - qdrant_data:/qdrant/storage
+    restart: unless-stopped
+    networks:
+      - ai_insurance_net
+      
+volumes:
+  postgres_data:
+  minio_data:
+  qdrant_data:
+
+networks:
+  ai_insurance_net:
+    driver: bridge

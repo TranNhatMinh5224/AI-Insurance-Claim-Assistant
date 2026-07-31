@@ -9,35 +9,38 @@ internal sealed class ChangePasswordCommandHandler : IRequestHandler<ChangePassw
     private readonly IUserRepository _userRepository;
     private readonly IPasswordHasher _passwordHasher;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ICurrentUserService _currentUser;
 
     public ChangePasswordCommandHandler(
         IUserRepository userRepository,
         IPasswordHasher passwordHasher,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        ICurrentUserService currentUser)
     {
         _userRepository = userRepository;
         _passwordHasher = passwordHasher;
         _unitOfWork = unitOfWork;
+        _currentUser = currentUser;
     }
 
     public async Task<Result<bool>> Handle(ChangePasswordCommand request, CancellationToken cancellationToken)
     {
-        // Step 1: Lấy thông tin user
-        var user = await _userRepository.GetByIdAsync(request.UserId, cancellationToken);
+        var userId = _currentUser.UserId;
+        if (userId is null)
+            return Result<bool>.Failure(Error.Unauthorized("Auth.Unauthenticated", "Không xác định được người dùng."));
+
+        var user = await _userRepository.GetByIdAsync(userId.Value, cancellationToken);
         if (user is null)
             return Result<bool>.Failure(Error.NotFound("User.NotFound", "Không tìm thấy người dùng"));
 
-        // Step 2: Kiểm tra mật khẩu hiện tại có đúng không
         bool isCurrentPasswordValid = _passwordHasher.Verify(request.CurrentPassword, user.PasswordHash);
         if (!isCurrentPasswordValid)
             return Result<bool>.Failure(
                 Error.Validation("User.InvalidPassword", "Mật khẩu hiện tại không chính xác"));
 
-        // Step 3: Hash mật khẩu mới và gọi domain method
         string newPasswordHash = _passwordHasher.Hash(request.NewPassword);
-        user.ChangePassword(newPasswordHash); // ← Domain logic chạy ở đây
+        user.ChangePassword(newPasswordHash);
 
-        // Step 4: Lưu vào DB
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return Result<bool>.Success(true);

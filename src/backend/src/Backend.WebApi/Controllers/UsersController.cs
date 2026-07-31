@@ -1,16 +1,16 @@
+using Backend.Application.Features.Users.ChangePassword;
 using Backend.Application.Features.Users.GetProfile;
 using Backend.WebApi.Common;
 using Backend.WebApi.Controllers.Requests;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
 
 namespace Backend.WebApi.Controllers;
 
 [ApiController]
 [Route("api/v1/users")]
-[Authorize] // Yêu cầu phải có JWT Access Token hợp lệ
+[Authorize(Roles = Roles.Any)] // Tất cả role đều được xem profile của chính mình
 public sealed class UsersController : ControllerBase
 {
     private readonly ISender _sender;
@@ -28,19 +28,13 @@ public sealed class UsersController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> GetProfile(CancellationToken cancellationToken)
     {
-        // Lấy UserId từ JWT Claims
-        var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (!Guid.TryParse(userIdString, out var userId))
-            return Unauthorized(ApiResponse<object>.FailureResult("Invalid token payload"));
-
-        var query = new GetUserProfileQuery(userId);
-        var result = await _sender.Send(query, cancellationToken);
+        var result = await _sender.Send(new GetUserProfileQuery(), cancellationToken);
 
         if (result.IsFailure)
         {
             return result.Error.Code.StartsWith("NotFound")
                 ? NotFound(ApiResponse<GetUserProfileResponse>.FailureResult(result.Error.Message))
-                : BadRequest(ApiResponse<GetUserProfileResponse>.FailureResult(result.Error.Message));
+                : Unauthorized(ApiResponse<GetUserProfileResponse>.FailureResult(result.Error.Message));
         }
 
         return Ok(ApiResponse<GetUserProfileResponse>.SuccessResult("Lấy thông tin thành công", result.Value));
@@ -57,13 +51,8 @@ public sealed class UsersController : ControllerBase
         [FromBody] ChangePasswordRequest request,
         CancellationToken cancellationToken)
     {
-        var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (!Guid.TryParse(userIdString, out var userId))
-            return Unauthorized(ApiResponse<object>.FailureResult("Invalid token payload"));
-
-        // RULE G2: Khởi tạo Command thủ công từ Request (Manual Mapping)
-        var command = new Backend.Application.Features.Users.ChangePassword.ChangePasswordCommand(
-            UserId: userId,
+        // RULE G2: Manual mapping từ Request → Command
+        var command = new ChangePasswordCommand(
             CurrentPassword: request.CurrentPassword,
             NewPassword: request.NewPassword,
             ConfirmNewPassword: request.ConfirmNewPassword
@@ -73,9 +62,9 @@ public sealed class UsersController : ControllerBase
 
         if (result.IsFailure)
         {
-            return result.Error.Code.StartsWith("Validation")
-                ? BadRequest(ApiResponse<object>.FailureResult(result.Error.Message))
-                : BadRequest(ApiResponse<object>.FailureResult(result.Error.Message)); // Hoặc xử lý lỗi khác
+            return result.Error.Code.StartsWith("Auth")
+                ? Unauthorized(ApiResponse<object>.FailureResult(result.Error.Message))
+                : BadRequest(ApiResponse<object>.FailureResult(result.Error.Message));
         }
 
         return Ok(ApiResponse<object>.SuccessResult("Đổi mật khẩu thành công", true));

@@ -315,7 +315,59 @@ var response = _mapper.Map<GetUserProfileResponse>(user);
 
 ---
 
-## 4. EXECUTION PROCESS — Thứ tự thực hiện BẮT BUỘC
+### GROUP H: Current User Rules
+
+#### RULE H1: BẮT BUỘC dùng `ICurrentUserService` để lấy UserId — KHÔNG dùng `IHttpContextAccessor` trực tiếp trong Handler
+
+```csharp
+// ✅ ĐÚNG — Inject ICurrentUserService
+internal sealed class CreateCarCommandHandler : IRequestHandler<...>
+{
+    private readonly ICurrentUserService _currentUser;
+
+    public async Task<Result<...>> Handle(...)
+    {
+        var userId = _currentUser.UserId;
+        if (userId is null)
+            return Result<...>.Failure(Error.Unauthorized("Auth.Unauthenticated", "..."));
+    }
+}
+
+// ❌ SAI — Copy-paste ClaimsPrincipal lặp lại mọi Handler
+var userIdClaim = _httpContextAccessor.HttpContext?.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+if (userIdClaim is null || !Guid.TryParse(userIdClaim, out var userId)) { ... } // Lặp lại!
+```
+
+**Nguyen tắc:** `ICurrentUserService` là abstraction duy nhất cho việc đọc JWT trong Application Layer.
+Chỉ có Implementation `CurrentUserService.cs` ở Infrastructure mới được phép dùng `IHttpContextAccessor`.
+
+#### RULE H2: `ICurrentUserService` có 3 thuộc tính cần biết
+| Thuộc tính | Kiểu | Mô tả |
+|---|---|---|
+| `UserId` | `Guid?` | Null nếu chưa đăng nhập |
+| `GetUserIdOrThrow()` | `Guid` | Throw `UnauthorizedAccessException` nếu null |
+| `Role` | `string?` | Role của user (`Customer`, `ClaimOfficer`) |
+| `IsAuthenticated` | `bool` | Kiểm tra trạng thái xem xác thực chưa |
+
+---
+
+### GROUP I: C# Code Style Rules
+
+#### RULE I1: BẮT BUỘC dùng `using` thay vì Fully-Qualified Name
+
+```csharp
+// ✅ ĐÚNG — Khai báo using ở đầu file
+using Microsoft.OpenApi.Models;
+
+// ... sử dụng ngắn gọn
+new OpenApiSecurityScheme { ... };
+
+// ❌ SAI — Viết tên đầy đủ lặp lại nhiều lần
+new Microsoft.OpenApi.Models.OpenApiSecurityScheme { ... };
+```
+
+**Quy tắc:** Mọi namespace đều phải được khai báo bằng `using` ở đầu file.
+Tuyệt đối không viết inline fully-qualified name trong body của một method hay expression.
 
 Luôn xây dựng từ trong ra ngoài (Domain → Application → Infrastructure → WebApi):
 

@@ -1,0 +1,97 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: ai_insurance_postgres_prod
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      # Ở môi trường production, thường chỉ nội bộ Docker giao tiếp với nhau
+      # Nếu muốn kết nối từ ngoài vào, hãy chắc chắn firewall đã được bảo vệ
+      - "5432:5432"
+    volumes:
+      - postgres_data_prod:/var/lib/postgresql/data
+    restart: always
+    networks:
+      - ai_insurance_net_prod
+
+  minio:
+    image: minio/minio:latest
+    container_name: ai_insurance_minio_prod
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data_prod:/data
+    command: server /data --console-address ":9001"
+    restart: always
+    networks:
+      - ai_insurance_net_prod
+
+  backend:
+    build:
+      context: ./src/backend
+      dockerfile: Dockerfile
+    container_name: ai_insurance_backend_prod
+    environment:
+      - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT}
+      - ASPNETCORE_HTTP_PORTS=8080
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      - MinioSettings__Endpoint=minio:9000
+      - MinioSettings__AccessKey=${MINIO_ROOT_USER}
+      - MinioSettings__SecretKey=${MINIO_ROOT_PASSWORD}
+      # Có thể truyền cả Jwt Secret qua biến môi trường để không phải cứng hóa trong appsettings.json
+      - JwtSettings__SecretKey=${JWT_SECRET_KEY}
+      # Cấu hình RabbitMQ
+      - RabbitMqSettings__HostName=rabbitmq
+      - RabbitMqSettings__UserName=${RABBITMQ_USER}
+      - RabbitMqSettings__Password=${RABBITMQ_PASSWORD}
+    ports:
+      - "5263:8080"
+    depends_on:
+      - postgres
+      - minio
+      - rabbitmq
+    restart: always
+    networks:
+      - ai_insurance_net_prod
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: ai_insurance_rabbitmq_prod
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    restart: always
+    networks:
+      - ai_insurance_net_prod
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: ai_insurance_qdrant_prod
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data_prod:/qdrant/storage
+    restart: always
+    networks:
+      - ai_insurance_net_prod
+
+volumes:
+  postgres_data_prod:
+  minio_data_prod:
+  qdrant_data_prod:
+
+networks:
+  ai_insurance_net_prod:
+    driver: bridge

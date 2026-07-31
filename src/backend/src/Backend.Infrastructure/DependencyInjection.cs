@@ -24,6 +24,12 @@ public static class DependencyInjection
 
         // Repositories
         services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<ICustomerDocumentRepository, CustomerDocumentRepository>();
+        services.AddScoped<ICarRepository, CarRepository>();
+        services.AddScoped<IInsurancePackageRepository, InsurancePackageRepository>();
+        services.AddScoped<IPolicyTermRepository, PolicyTermRepository>();
+        services.AddScoped<IInsurancePolicyRepository, InsurancePolicyRepository>();
+        services.AddScoped<IClaimRepository, ClaimRepository>();
 
         // Unit of Work
         services.AddScoped<IUnitOfWork, UnitOfWork>();
@@ -31,11 +37,17 @@ public static class DependencyInjection
         // Services
         services.AddSingleton<IPasswordHasher, PasswordHasherService>();
         services.AddSingleton<IJwtTokenService, JwtTokenService>();
+        services.AddScoped<ICurrentUserService, CurrentUserService>();
 
         // Email Configuration
         services.Configure<Backend.Infrastructure.Services.Email.EmailSettings>(
             configuration.GetSection("EmailSettings"));
         services.AddTransient<IEmailService, Backend.Infrastructure.Services.Email.SmtpEmailService>();
+
+        // MinIO Storage
+        services.Configure<Backend.Infrastructure.Services.Storage.MinioSettings>(
+            configuration.GetSection("MinioSettings"));
+        services.AddSingleton<IFileStorageService, Backend.Infrastructure.Services.Storage.MinioStorageService>();
 
         return services;
     }

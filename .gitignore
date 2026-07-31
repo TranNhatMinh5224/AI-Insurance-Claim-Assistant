@@ -1,0 +1,41 @@
+# Lịch sử và thông tin hệ thống
+.DS_Store
+Thumbs.db
+
+# File biến môi trường (Bảo mật, TUYỆT ĐỐI KHÔNG commit)
+.env
+.env.production
+.env.local
+
+# Thư mục build và file tạm của .NET
+[Bb]in/
+[Oo]bj/
+/src/backend/publish/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+.vs/
+.vscode/
+
+# Thư mục Node/Frontend (nếu có)
+node_modules/
+dist/
+build/
+.next/
+out/
+
+# Python / AI Service (nếu có)
+__pycache__/
+*.pyc
+.venv/
+venv/
+env/
+.env_ai
+
+# Cấu hình IDE / Môi trường cá nhân
+.env
+.env.prod
+.env.*
+appsettings.Development.json
+appsettings.Local.json

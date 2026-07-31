@@ -1,6 +1,7 @@
 using Backend.Application;
 using Backend.Infrastructure;
 using Backend.WebApi.Middlewares;
+using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -25,7 +26,32 @@ builder.Services.AddSwaggerGen(options =>
         Version = "v1",
         Description = "Nền tảng AI hỗ trợ xử lý bồi thường bảo hiểm xe cơ giới"
     });
+
+    // Cho phép nhập JWT Bearer Token trong Swagger UI
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "Bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description = "Nhập JWT Token. Ví dụ: Bearer eyJhbGci..."
+    });
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
+            },
+            Array.Empty<string>()
+        }
+    });
 });
+
+// IHttpContextAccessor — dùng để lấy UserId từ JWT trong Handlers
+builder.Services.AddHttpContextAccessor();
 
 // ─── Middleware Pipeline ─────────────────────────────────
 var app = builder.Build();

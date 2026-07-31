@@ -7,15 +7,22 @@ namespace Backend.Application.Features.Users.GetProfile;
 internal sealed class GetUserProfileQueryHandler : IRequestHandler<GetUserProfileQuery, Result<GetUserProfileResponse>>
 {
     private readonly IUserRepository _userRepository;
+    private readonly ICurrentUserService _currentUser;
 
-    public GetUserProfileQueryHandler(IUserRepository userRepository)
+    public GetUserProfileQueryHandler(IUserRepository userRepository, ICurrentUserService currentUser)
     {
         _userRepository = userRepository;
+        _currentUser = currentUser;
     }
 
     public async Task<Result<GetUserProfileResponse>> Handle(GetUserProfileQuery request, CancellationToken cancellationToken)
     {
-        var user = await _userRepository.GetByIdAsync(request.UserId, cancellationToken);
+        var userId = _currentUser.UserId;
+        if (userId is null)
+            return Result<GetUserProfileResponse>.Failure(
+                Error.Unauthorized("Auth.Unauthenticated", "Không xác định được người dùng."));
+
+        var user = await _userRepository.GetByIdAsync(userId.Value, cancellationToken);
         if (user is null)
             return Result<GetUserProfileResponse>.Failure(
                 Error.NotFound("User.NotFound", "Không tìm thấy thông tin người dùng"));
